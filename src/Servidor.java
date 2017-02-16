@@ -43,10 +43,10 @@ public class Servidor extends Thread {
             ArrayList<File> files = new ArrayList<File>(Arrays.asList(f.listFiles()));
             //Escribo en canal de escritura el mismo mensaje recibido
             p.println(files.toString());
-
+            
             //Leo lo que escribio el socket cliente en el canal de lectura
             mensaje = b.readLine();
-            System.out.println(mensaje);
+            System.out.println("Servidor: Indice seleccionado "+mensaje);
 
             //Enviar fichero
             FileInputStream fis = new FileInputStream(files.get(Integer.parseInt(mensaje)));
@@ -84,8 +84,8 @@ public class Servidor extends Thread {
 
             sc.close();
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("No puedo crear el socket");
+            //e.printStackTrace();
+            System.out.println("Cliente desconectado inesperadamente.");
         }
     }
 }

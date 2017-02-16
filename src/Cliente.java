@@ -1,15 +1,17 @@
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
+import java.io.BufferedWriter;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.Scanner;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -22,61 +24,98 @@ import java.net.UnknownHostException;
  */
 public class Cliente {
 
-    public static void main(String[] args) {
+    static String host = "localhost";
+    public String respuesta;
+    static int port = 8888;
+    public static JFVista vista = new JFVista();
+    public static Socket s;
+    public PrintStream p;
+    public BufferedReader b;
 
-        Socket s;
-        PrintStream p;
-        BufferedReader b;
+    public Cliente() throws Exception {
 
-        String host = "localhost";
-        int port = 8888;
-        String respuesta;
+        this.s = new Socket(host, port);
+        this.p = new PrintStream(s.getOutputStream());
+        this.b = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        this.vista.setVisible(true);
 
-        //Referencia a la entrada por consola (System.in)
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        //Espero la respuesta por el canal de lectura
+         this.respuesta = b.readLine();
+        System.out.println("aa " + respuesta);
+        String[] listadoArchivos = respuesta.split(",");
+        vista.getjComboBoxLista().removeAllItems();
+        for (String st : listadoArchivos) {
+            st = st.replace("[", "");
+            st = st.replace("]", "");
+            st = st.trim();
+            vista.getjComboBoxLista().addItem(st);
+        }
 
-        try {
+        vista.getjButton1().addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
 
-            //Creo una conexion al socket servidor
-            s = new Socket(host, port);
+                    s = new Socket(host, port);
+                    //Creo las referencias al canal de escritura y lectura del socket
+                    PrintStream pa = new PrintStream(s.getOutputStream());
+                    BufferedReader ba = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                    //Escribo en el canal de escritura del socket
+                    pa.println(vista.getjComboBoxLista().getSelectedIndex());
 
-            //Creo las referencias al canal de escritura y lectura del socket
-            p = new PrintStream(s.getOutputStream());
-            b = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                    byte[] contents = new byte[10000];
 
-            //Espero la respuesta por el canal de lectura
-            respuesta = b.readLine();
-            System.out.println(respuesta);
+                    //Initialize the FileOutputStream to the output file's full path.
+                    System.out.println("Archivo seleccionado " + vista.getjComboBoxLista().getSelectedItem().toString().replace("ficheros\\", ""));
+                    FileOutputStream fos = new FileOutputStream(vista.getjComboBoxLista().getSelectedItem().toString().replace("ficheros\\", ""));
+                    BufferedOutputStream bos = new BufferedOutputStream(fos);
+                    InputStream is = s.getInputStream();
 
-            System.out.println("Introduce el indice: ");
-            //Escribo en el canal de escritura del socket
-            p.println(in.readLine());
+                    //No of bytes read in one read() call
+                    int bytesRead = 0;
 
-            byte[] contents = new byte[10000];
+                    while ((bytesRead = is.read(contents)) != -1) {
+                        bos.write(contents, 0, bytesRead);
+                    }
 
-            //Initialize the FileOutputStream to the output file's full path.
-            FileOutputStream fos = new FileOutputStream("prueba.txt");
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            InputStream is = s.getInputStream();
+                    bos.flush();
 
-            //No of bytes read in one read() call
-            int bytesRead = 0;
+                    //la linea es variable respuesta
+                    //archivo es vista.getjComboBoxLista().getSelectedItem().toString().replace("ficheros\\", "")
+//                    Scanner fileScanner = new Scanner(vista.getjComboBoxLista().getSelectedItem().toString().replace("ficheros\\", ""));
+//                    fileScanner.nextLine();
+//                    FileWriter fileStream = new FileWriter(vista.getjComboBoxLista().getSelectedItem().toString().replace("ficheros\\", ""));
+//                    BufferedWriter out = new BufferedWriter(fileStream);
+//                    while (fileScanner.hasNextLine()) {
+//                        String next = fileScanner.nextLine();
+//                        if (next.equals(respuesta)) 
+//                            out.newLine();
+//                        else {
+//                            out.write(next);
+//                        }
+//                        out.newLine();
+//                    }
+//                    out.close();
+                    
 
-            while ((bytesRead = is.read(contents)) != -1) {
-                bos.write(contents, 0, bytesRead);
+                    System.out.println("fichero guardado");
+                    pa.close();
+                    ba.close();
+                    s.close();
+                } catch (IOException se) {
+                    se.printStackTrace();
+                    System.out.println("Error de E/S en " + host + ":" + port);
+                }
+
             }
+        });
+    }
 
-            bos.flush();
-            s.close();
-            p.close();
-            b.close();
-            
-            System.out.println("fichero guardado");
-        } catch (UnknownHostException e) {
-            System.out.println("No puedo conectarme a " + host + ":" + port);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error de E/S en " + host + ":" + port);
+    public static void main(String[] args) {
+        try {
+            new Cliente();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 }
